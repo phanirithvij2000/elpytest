@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "elpytest_server"
+version = "0.0.1"
+description = "Elpytest Server Description"
+authors = ["phanirithvij2000 <phanirithvij20003@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+requests = "^2.26.0"
+Flask = "^2.0.2"
+
+[tool.poetry.dev-dependencies]
+autopep8 = "^1.5.7"
+pytest-cov = "^3.0.0"
+pytest-flask = "^1.2.0"
+python-dotenv = "^0.19.1"
+
+# This is required just to setup repo secrets
+[tool.poetry.dev-dependencies.PyNaCl]
+version = "^1.4.0"
+python = "^3.7"
+markers = "implementation_name != 'pypy' and python_version ~= '3.7'"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

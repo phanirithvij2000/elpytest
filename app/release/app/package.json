@@ -1,0 +1,17 @@
+{
+  "name": "elpytest",
+  "productName": "elpytest",
+  "version": "v0.0.1-alpha.0",
+  "description": "ElectronPythonSample desktop application",
+  "main": "./dist/main/main.js",
+  "author": {
+    "name": "phanirithvij2000",
+    "email": "phanirithvij20003@gmail.com"
+  },
+  "scripts": {
+    "electron-rebuild": "node -r ts-node/register ../../.erb/scripts/electron-rebuild.js",
+    "link-modules": "node -r ts-node/register ../../.erb/scripts/link-modules.js",
+    "postinstall": "npm run electron-rebuild && npm run link-modules"
+  },
+  "license": "MIT"
+}

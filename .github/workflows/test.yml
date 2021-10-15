@@ -1,0 +1,119 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - main
+      - "!releases/**"
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  skip_check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if Initial commit (use template)
+        if: ${{ contains(github.event.head_commit.message, 'Initial commit') }}
+        run: |
+          curl -i -H "Authorization: token ${{ secrets.PAT }}" -X POST -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/${{github.repository}}/actions/runs/${{github.run_id}}/cancel
+      - name: Check if skip tests
+        if: ${{ contains(github.event.head_commit.message, '[skip test') }}
+        run: |
+          curl -i -H "Authorization: token ${{ secrets.PAT }}" -X POST -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/${{github.repository}}/actions/runs/${{github.run_id}}/cancel
+      - name: Check if auto bump
+        if: ${{ contains(github.event.head_commit.message, '[auto-bump]') }}
+        run: |
+          curl -i -H "Authorization: token ${{ secrets.PAT }}" -X POST -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/${{github.repository}}/actions/runs/${{github.run_id}}/cancel
+  test_client:
+    needs: skip_check
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: ["15", "16"]
+    defaults:
+      run:
+        working-directory: ./app
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v2
+      - name: setup node
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node }}
+          cache: yarn
+          cache-dependency-path: app/yarn.lock
+      - name: yarn install
+        run: |
+          npx yarn install
+      - name: Test client
+        run: |
+          npx yarn run package:nobuild
+          npx yarn run lint
+          npm exec tsc
+          npx yarn run test
+      - name: Codecov
+        uses: codecov/codecov-action@v2
+        with:
+          verbose: true
+          working-directory: ./app
+          directory: ./coverage/
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: unittests
+  test_server:
+    needs: skip_check
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-arch: ["x64", "x86"]
+        poetry-version: [ '1.1.11' ]
+        python-version: ["3.8", "3.9", "pypy-3.7"]
+    steps:
+      - name: Check if skip tests
+        if: ${{ contains(github.event.head_commit.message, '[skip test') }}
+        run: |
+          curl -i -H "Authorization: token ${{ secrets.PAT }}" -X POST -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/${{github.repository}}/actions/runs/${{github.run_id}}/cancel
+      - uses: actions/checkout@v2
+      - name: Setup python win
+        if: matrix.os == 'windows-latest'
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: ${{ matrix.python-arch }}
+      - name: Setup python linux
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: x64
+      - name: Setup poetry
+        uses: abatilo/actions-poetry@v2.1.3
+        with:
+          poetry-version: ${{ matrix.poetry-version }}
+      - name: Test Server win
+        if: matrix.os == 'windows-latest'
+        working-directory: ./server
+        shell: cmd
+        run: ..\.ci\scripts\pytest_win.bat "${{matrix.python-version}}"
+      - name: Test Server linux
+        if: matrix.os == 'ubuntu-latest'
+        working-directory: ./server
+        shell: bash
+        run: |
+          if [[ "${{ matrix.python-version }} " == pypy* ]]; then
+            alias python=pypy3
+          fi
+          poetry env use python
+          poetry install -v
+          # https://stackoverflow.com/a/62512174/8608146
+          source "$( poetry env list --full-path | grep Activated | cut -d' ' -f1 )/bin/activate"
+          pytest tests/ --cov=./ --cov-report=xml:coverage/coverage.xml
+      - name: Codecov
+        uses: codecov/codecov-action@v2
+        with:
+          verbose: true
+          working-directory: ./server
+          directory: ./coverage/
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: pytest
