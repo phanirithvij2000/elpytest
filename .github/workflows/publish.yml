@@ -1,5 +1,4 @@
 name: Publish
-
 on:
   release:
     types: [published]
@@ -10,14 +9,13 @@ on:
   workflow_dispatch:
     inputs:
       versionName:
-        default: 0.0.2
-        description: "Name of version (ie 0.0.2)"
+        default: 0.0.1
+        description: "Default values show the last released version\\nName of version (ie 0.0.1) without v prefix"
         required: true
       preReleaseSuffix:
-        default: ""
-        description: "Pre Release suffix? appends -alpha to tag (alpha, beta etc.)"
+        default: "alpha.1"
+        description: "Pre Release suffix, appends -alpha.1 to tag (alpha, beta, dev etc.)"
         required: false
-
 jobs:
   skip_check:
     runs-on: ubuntu-latest
@@ -67,13 +65,7 @@ jobs:
         uses: mikefarah/yq@master
       - name: Setup yq win
         if: matrix.os == 'windows-latest'
-        run: |
-          # https://stackoverflow.com/a/46760714/8608146
-          iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
-          choco install -y yq
-          $env:ChocolateyInstall = Convert-Path "$((Get-Command choco).Path)\..\.."   
-          Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
-          refreshenv
+        run: "# https://stackoverflow.com/a/46760714/8608146\niex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))\nchoco install -y yq\n$env:ChocolateyInstall = Convert-Path \"$((Get-Command choco).Path)\\..\\..\"   \nImport-Module \"$env:ChocolateyInstall\\helpers\\chocolateyProfile.psm1\"\nrefreshenv\n"
       - name: Initialize bot git config
         shell: bash
         run: |
