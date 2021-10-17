@@ -54,10 +54,8 @@
         "nsis",
         "nsis-web",
         "portable",
-        "appx",
         "msi",
-        "squirrel",
-        "zip"
+        "squirrel"
       ]
     },
     "linux": {
